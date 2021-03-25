@@ -1,4 +1,4 @@
-function [period,sol] = pendulum(L,grph,theta0,thetad0) 
+function [y,t] = pendulum(L,grph,theta0,thetad0) 
 % Finds the period of a nonlinear pendulum given the length of the pendulum
 % arm and initial conditions. All angles in radians.
 
@@ -21,7 +21,7 @@ omega = sqrt(g/L);
 T= 2*pi/omega;
 % specify the number of oscillations to graph ~approximately
 N = 10;
-t = linspace(0,N*T,100);
+t = linspace(0,N*T,100)';
 % finds the phase angle
 delta = atan(theta0/(omega*thetad0));
 % small angle solution
