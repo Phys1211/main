@@ -21,21 +21,25 @@ omega = sqrt(g/L);
 T= 2*pi/omega;
 % specify the number of oscillations to graph ~approximately
 N = 10;
-t = linspace(0,N*T,100)';
+time = linspace(0,N*T,100)';
 % finds the phase angle
 delta = atan(theta0/(omega*thetad0));
 % small angle solution
-y = theta0*sin(omega*t+delta);
+y = theta0*sin(omega*time+delta);
+opts = odeset('refine',6);
+[t,theta] = ode45(@dthetadt,[0, N*T],[theta0;thetad0],opts,g,L) 
 
 if grph % Plot Solution
-    plot(t,y,'b')
+    plot(t,theta(:,1),'b')
     title('Approximate Pendulum Solution')
     xlabel('t')
     ylabel( '\Delta\theta')
 end
 end
 %-------------------------------------------
-
-
-
+% function always needs to take t, theta(solution), theta is a 2 element
+% array [theta thetadot]
+function tdot = dthetadt(t,theta,g,L)
+    tdot = [theta(2);-g/L*sin(theta(1))]
+end
 

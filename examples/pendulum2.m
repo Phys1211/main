@@ -1,4 +1,4 @@
-function [t,w] = pendulum(mode,grh,omega0,theta0,thetad0,gamma,omega) 
+function [t,w] = pendulum2(mode,grh,omega0,theta0,thetad0,gamma,omega) 
 % Finds the period of a nonlinear pendulum given the length, of the pendulum
 % arm and initial conditions. All angles in radians.
 % MODE indicates whether the oscillator is
