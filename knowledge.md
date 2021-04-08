@@ -15,3 +15,21 @@
 12. Use variables and not values for commonly used parameters
 13. `help` is another way to documentation
 14. Double down on **simplicity**
+
+## Python
+1. Commenting is very important. Doing it in the first place beats going back.
+2. Solving 2nd order differentials - most memoriable
+3. Variable explorer is very useful to know what the code does
+4. Importing packages in python allows choices in functionality
+
+
+
+
+## General
+1. Math by hand is hard, all the easy problems are done - computational mathematics is the way to go
+2. If you need something, someone before you has probably produced it.
+3. Look up code, but make sure that you know what (and why) the code is doing what it's doing
+4. More respect for people who code.
+5. Look stuff up! File Exchanges, documentation, anything
+6. Stackoverflow is a good source
+7. Errors are usually small things
