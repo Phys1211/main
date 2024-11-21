@@ -1,4 +1,4 @@
-# Things WeCu've Learned
+# Things We've Learned
 1. Basic Python syntax
 2. Analysis of large data files
 3. Pulling specific pieces from data
