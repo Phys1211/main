@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-@author: Tom
+@author: Matteo Ostland
 """
+#
+Psuedocode 
+#
 
 import math as mh
 
