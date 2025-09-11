@@ -6,3 +6,4 @@ Created on Wed Sep 10 16:20:40 2025
 """
 
 k = 1000
+term = (-1)^k /2k+1
