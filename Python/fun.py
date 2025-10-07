@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 @author: Tom
+Documentation here will appear when running
+import funcpass as fp
+fp.__dir__
 """
 
 import math as mh
