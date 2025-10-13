@@ -39,6 +39,30 @@ def falling1D(h,v0=0):
     return time,velo
 
 def projectile(v0, angle, h):
+    '''
+    
+
+   Parameters
+    ----------
+    v0 : TYPE
+        DESCRIPTION.
+    angle : TYPE
+        DESCRIPTION.
+    h : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    vf : TYPE
+        DESCRIPTION.
+    rang : TYPE
+        DESCRIPTION.
+    time : TYPE
+        DESCRIPTION.
+    height : TYPE
+        DESCRIPTION.
+
+    '''
     height, timeup = rising1D(v0)
     timedown, vf = falling1D(height)
     time = timeup + timedown
