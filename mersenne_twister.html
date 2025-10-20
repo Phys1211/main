@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mersenne Twister MT19937 Algorithm</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        const ChevronLeft = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+        );
+        
+        const ChevronRight = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+        );
+        
+        const RotateCcw = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="1 4 1 10 7 10"></polyline>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+            </svg>
+        );
+
+        const MersenneTwisterViz = () => {
+          const [step, setStep] = useState(0);
+          const [seed, setSeed] = useState(5489);
+          const [mt, setMt] = useState([]);
+          const [index, setIndex] = useState(0);
+          const [outputValue, setOutputValue] = useState(null);
+          const [temperedSteps, setTemperedSteps] = useState([]);
+          const [initialized, setInitialized] = useState(false);
+
+          // MT19937 constants
+          const N = 624;
+          const M = 397;
+          const MATRIX_A = 0x9908b0df;
+          const UPPER_MASK = 0x80000000;
+          const LOWER_MASK = 0x7fffffff;
+          const f = 1812433253;
+
+          // Convert to 32-bit unsigned
+          const uint32 = (x) => x >>> 0;
+
+          // Initialize MT array
+          const initializeMT = (s) => {
+            const newMt = new Array(N);
+            newMt[0] = uint32(s);
+            for (let i = 1; i < N; i++) {
+              const prev = newMt[i - 1];
+              newMt[i] = uint32(f * uint32(prev ^ (prev >>> 30)) + i);
+            }
+            setMt(newMt);
+            setIndex(N);
+            setInitialized(true);
+            setOutputValue(null);
+            setTemperedSteps([]);
+          };
+
+          // Twist operation
+          const twist = () => {
+            const newMt = [...mt];
+            for (let i = 0; i < N; i++) {
+              const x = uint32((newMt[i] & UPPER_MASK) | (newMt[(i + 1) % N] & LOWER_MASK));
+              let xA = x >>> 1;
+              if (x & 1) {
+                xA ^= MATRIX_A;
+              }
+              newMt[i] = uint32(newMt[(i + M) % N] ^ xA);
+            }
+            setMt(newMt);
+            setIndex(0);
+          };
+
+          // Tempering function with step tracking
+          const temper = (y) => {
+            const steps = [];
+            steps.push({ step: 0, value: y, operation: "y = MT[index]" });
+            
+            y = uint32(y ^ (y >>> 11));
+            steps.push({ step: 1, value: y, operation: "y = y ⊕ (y >> 11)" });
+            
+            y = uint32(y ^ ((y << 7) & 0x9d2c5680));
+            steps.push({ step: 2, value: y, operation: "y = y ⊕ ((y << 7) & 0x9D2C5680)" });
+            
+            y = uint32(y ^ ((y << 15) & 0xefc60000));
+            steps.push({ step: 3, value: y, operation: "y = y ⊕ ((y << 15) & 0xEFC60000)" });
+            
+            y = uint32(y ^ (y >>> 18));
+            steps.push({ step: 4, value: y, operation: "y = y ⊕ (y >> 18)" });
+            
+            return { value: y, steps };
+          };
+
+          // Generate random number
+          const generateNumber = () => {
+            if (index >= N) {
+              twist();
+              return;
+            }
+            
+            const y = mt[index];
+            const result = temper(y);
+            setOutputValue(result.value);
+            setTemperedSteps(result.steps);
+            setIndex(index + 1);
+          };
+
+          useEffect(() => {
+            initializeMT(seed);
+          }, []);
+
+          const handleSeedChange = (e) => {
+            const newSeed = parseInt(e.target.value) || 0;
+            setSeed(newSeed);
+          };
+
+          const handleInitialize = () => {
+            initializeMT(seed);
+            setStep(0);
+          };
+
+          const handleGenerate = () => {
+            if (step >= 2) {
+              generateNumber();
+            }
+          };
+
+          const steps = [
+            {
+              title: "Overview: MT19937",
+              description: "The Mersenne Twister (MT19937) generates pseudorandom numbers with a period of 2^19937 - 1. Enter a seed value and click 'Initialize' to begin.",
+              diagram: "overview"
+            },
+            {
+              title: "Step 1: Initialization",
+              description: `Initializing with seed = ${seed}. The state array MT[0...623] is populated using the recurrence relation shown below. Each element depends on the previous one.`,
+              formula: "MT[i] = f × (MT[i-1] ⊕ (MT[i-1] >> 30)) + i",
+              constants: `f = ${f}`,
+              diagram: "init"
+            },
+            {
+              title: "Step 2: Generate Operation",
+              description: `Current index: ${index}. Click 'Generate Number' to extract a random value. When index reaches 624, the twist operation automatically runs.`,
+              diagram: "generate"
+            },
+            {
+              title: "Step 3: Twist Operation",
+              description: "The twist regenerates all 624 state values using a recurrence relation. This happens automatically when all values have been used.",
+              formula: "MT[i] = MT[(i+397) mod 624] ⊕ ((MT[i]_upper | MT[i+1]_lower) × A)",
+              constants: `A = 0x${MATRIX_A.toString(16).toUpperCase()}`,
+              diagram: "twist"
+            },
+            {
+              title: "Step 4: Tempering",
+              description: `The state value MT[${Math.max(0, index - 1)}] = ${mt[Math.max(0, index - 1)]?.toString(16).toUpperCase() || '?'} is transformed through bit operations:`,
+              diagram: "temper"
+            },
+            {
+              title: "Step 5: Output",
+              description: `Final output: ${outputValue !== null ? outputValue : 'Generate a number first'}`,
+              diagram: "output"
+            }
+          ];
+
+          const currentStep = steps[step];
+
+          const renderDiagram = () => {
+            switch(currentStep.diagram) {
+              case "overview":
+                return (
+                  <div className="flex flex-col items-center gap-8 py-8">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-blue-500 text-white px-6 py-4 rounded-lg font-mono text-sm">
+                        Seed: {seed}
+                      </div>
+                      <div className="text-2xl">→</div>
+                      <div className="bg-purple-500 text-white px-6 py-4 rounded-lg font-mono text-sm">
+                        State Array<br/>[624 elements]
+                      </div>
+                      <div className="text-2xl">→</div>
+                      <div className="bg-green-500 text-white px-6 py-4 rounded-lg font-mono text-sm">
+                        Random<br/>Numbers
+                      </div>
+                    </div>
+                    <div className="flex gap-4 items-center">
+                      <input
+                        type="number"
+                        value={seed}
+                        onChange={handleSeedChange}
+                        className="border-2 border-gray-300 rounded px-4 py-2 w-32 font-mono"
+                        placeholder="Seed"
+                      />
+                      <button
+                        onClick={handleInitialize}
+                        className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                      >
+                        Initialize
+                      </button>
+                    </div>
+                    <div className="text-center text-gray-600 max-w-md">
+                      Period: 2^19937 - 1 ≈ 10^6001 (Mersenne prime exponent)
+                    </div>
+                  </div>
+                );
+              
+              case "init":
+                return (
+                  <div className="flex flex-col items-center gap-6 py-8">
+                    <div className="bg-blue-100 p-6 rounded-lg border-2 border-blue-500">
+                      <div className="font-mono text-sm space-y-2">
+                        <div className="font-bold text-lg mb-3">Initialization with seed = {seed}:</div>
+                        <div className="bg-white p-3 rounded">MT[0] = {mt[0]?.toString(16).toUpperCase() || '?'}</div>
+                        <div className="bg-white p-3 rounded">MT[1] = {mt[1]?.toString(16).toUpperCase() || '?'}</div>
+                        <div className="bg-white p-3 rounded">MT[2] = {mt[2]?.toString(16).toUpperCase() || '?'}</div>
+                        <div className="bg-white p-3 rounded">MT[3] = {mt[3]?.toString(16).toUpperCase() || '?'}</div>
+                        <div className="text-gray-600 mt-2">... (620 more values)</div>
+                        <div className="text-gray-600 mt-4">Values shown in hexadecimal</div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-8 gap-1">
+                      {mt.slice(0, 32).map((val, i) => (
+                        <div key={i} className="bg-purple-300 h-12 w-12 flex items-center justify-center text-xs border border-purple-500 font-mono overflow-hidden" title={`MT[${i}] = ${val}`}>
+                          {i}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-gray-600 text-sm">State array indices (showing first 32 of 624)</div>
+                  </div>
+                );
+              
+              case "generate":
+                return (
+                  <div className="flex flex-col items-center gap-6 py-8">
+                    <div className="bg-yellow-100 p-6 rounded-lg border-2 border-yellow-600 max-w-lg">
+                      <div className="font-mono text-sm space-y-3">
+                        <div className="font-bold text-lg mb-2">Extract Number:</div>
+                        <div className="bg-white p-3 rounded">Current index: {index}</div>
+                        <div className="bg-white p-3 rounded">if (index ≥ 624) twist()</div>
+                        <div className="bg-white p-3 rounded">y = temper(MT[{index < N ? index : 0}])</div>
+                        <div className="bg-white p-3 rounded">index = {index < N ? index + 1 : 1}</div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleGenerate}
+                      className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-bold"
+                    >
+                      Generate Number
+                    </button>
+                    <div className="flex items-center gap-2 overflow-x-auto">
+                      <div className="text-gray-600 whitespace-nowrap">Index:</div>
+                      {[...Array(Math.min(20, N))].map((_, i) => (
+                        <div key={i} className={`h-10 w-10 flex items-center justify-center border-2 rounded flex-shrink-0 ${i === index ? 'bg-yellow-300 border-yellow-600 font-bold' : 'bg-gray-100 border-gray-400'}`}>
+                          {i}
+                        </div>
+                      ))}
+                      <div className="text-gray-400">...</div>
+                    </div>
+                    {index >= N && (
+                      <div className="text-orange-600 font-bold">
+                        Next generation will trigger twist operation!
+                      </div>
+                    )}
+                  </div>
+                );
+              
+              case "twist":
+                return (
+                  <div className="flex flex-col items-center gap-6 py-8">
+                    <div className="bg-orange-100 p-6 rounded-lg border-2 border-orange-600 max-w-2xl">
+                      <div className="font-mono text-sm space-y-3">
+                        <div className="font-bold text-lg mb-3">Twist Recurrence (for each i = 0 to 623):</div>
+                        <div className="bg-white p-4 rounded space-y-2">
+                          <div>x = (MT[i] & 0x80000000) | (MT[(i+1) mod 624] & 0x7FFFFFFF)</div>
+                          <div className="text-gray-600 text-xs pl-4">↑ upper 1 bit ↑ | ↑ lower 31 bits ↑</div>
+                          <div className="mt-3">xA = (x >> 1) ⊕ (x & 1 ? A : 0)</div>
+                          <div className="mt-3">MT[i] = MT[(i + 397) mod 624] ⊕ xA</div>
+                        </div>
+                        <div className="text-sm text-gray-600 mt-4">
+                          Example with current state MT[0] = {mt[0]?.toString(16).toUpperCase() || '?'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-8 text-center">
+                      <div>
+                        <div className="bg-orange-200 p-4 rounded border border-orange-400 font-mono text-sm">
+                          {mt[0]?.toString(16).toUpperCase().slice(0, 8) || '?'}
+                        </div>
+                        <div className="text-sm text-gray-600 mt-2">MT[0]</div>
+                      </div>
+                      <div>
+                        <div className="bg-orange-300 p-4 rounded border border-orange-500 font-mono text-sm">
+                          {mt[1]?.toString(16).toUpperCase().slice(0, 8) || '?'}
+                        </div>
+                        <div className="text-sm text-gray-600 mt-2">MT[1]</div>
+                      </div>
+                      <div>
+                        <div className="bg-orange-400 p-4 rounded border border-orange-600 text-white font-mono text-sm">
+                          {mt[M]?.toString(16).toUpperCase().slice(0, 8) || '?'}
+                        </div>
+                        <div className="text-sm text-gray-600 mt-2">MT[397]</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              
+              case "temper":
+                return (
+                  <div className="flex flex-col items-center gap-6 py-8">
+                    <div className="bg-green-100 p-6 rounded-lg border-2 border-green-600 max-w-2xl">
+                      <div className="font-mono text-sm space-y-2">
+                        <div className="font-bold text-lg mb-3">Tempering Transform:</div>
+                        {temperedSteps.length > 0 ? (
+                          temperedSteps.map((item, i) => (
+                            <div key={i} className="bg-white p-3 rounded flex items-center gap-3">
+                              <div className="bg-green-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                {i}
+                              </div>
+                              <div className="flex-grow overflow-hidden">
+                                <div className="text-xs text-gray-600">{item.operation}</div>
+                                <div className="font-bold">0x{item.value.toString(16).toUpperCase()}</div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-gray-500 text-center py-4">
+                            Generate a number to see tempering steps
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-center text-gray-600 max-w-md text-sm">
+                      Each XOR and shift operation improves bit-level randomness and ensures equidistribution
+                    </div>
+                  </div>
+                );
+              
+              case "output":
+                return (
+                  <div className="flex flex-col items-center gap-8 py-8">
+                    <div className="flex items-center gap-4 flex-wrap justify-center">
+                      <div className="bg-purple-500 text-white px-6 py-4 rounded-lg font-mono text-sm">
+                        MT[{Math.max(0, index - 1)}]
+                      </div>
+                      <div className="text-2xl">→</div>
+                      <div className="bg-green-500 text-white px-6 py-4 rounded-lg font-mono text-sm">
+                        Temper
+                      </div>
+                      <div className="text-2xl">→</div>
+                      <div className="bg-blue-500 text-white px-6 py-4 rounded-lg font-mono text-lg">
+                        {outputValue !== null ? `0x${outputValue.toString(16).toUpperCase()}` : 'N/A'}
+                      </div>
+                    </div>
+                    {outputValue !== null && (
+                      <div className="bg-gray-100 p-6 rounded-lg border-2 border-gray-400 max-w-lg">
+                        <div className="font-mono text-sm space-y-2">
+                          <div className="font-bold mb-2">Output Value:</div>
+                          <div className="bg-white p-3 rounded">Decimal: {outputValue}</div>
+                          <div className="bg-white p-3 rounded">Hex: 0x{outputValue.toString(16).toUpperCase()}</div>
+                          <div className="bg-white p-3 rounded">
+                            <div className="text-gray-600 text-xs mb-1">Float [0,1) = {outputValue} / 2^32:</div>
+                            <div className="font-bold">{(outputValue / Math.pow(2, 32)).toFixed(10)}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <button
+                      onClick={handleGenerate}
+                      className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition font-bold"
+                    >
+                      Generate Another
+                    </button>
+                    <div className="text-center text-gray-600 max-w-md">
+                      After extraction, increment index and repeat. Every 624 numbers, the twist operation regenerates the entire state.
+                    </div>
+                  </div>
+                );
+              
+              default:
+                return null;
+            }
+          };
+
+          return (
+            <div className="max-w-4xl mx-auto p-6 bg-white">
+              <div className="flex justify-between items-start mb-8">
+                <h1 className="text-3xl font-bold text-gray-800">
+                  Mersenne Twister MT19937 Algorithm
+                </h1>
+                <button
+                  onClick={handleInitialize}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
+                  title="Reset"
+                >
+                  <RotateCcw size={16} />
+                  Reset
+                </button>
+              </div>
+              
+              <div className="mb-8">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold text-gray-700">{currentStep.title}</h2>
+                  <div className="text-sm text-gray-500">Step {step + 1} of {steps.length}</div>
+                </div>
+                
+                <p className="text-gray-700 mb-6">{currentStep.description}</p>
+                
+                {currentStep.formula && (
+                  <div className="bg-blue-50 p-4 rounded-lg mb-4 font-mono text-sm border border-blue-200">
+                    <div className="font-bold mb-2">Key Formula:</div>
+                    <div>{currentStep.formula}</div>
+                  </div>
+                )}
+                
+                {currentStep.constants && (
+                  <div className="bg-gray-50 p-4 rounded-lg mb-4 font-mono text-sm border border-gray-200">
+                    <div className="font-bold mb-2">Constants:</div>
+                    <div>{currentStep.constants}</div>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-2 border-gray-300 rounded-lg p-6 bg-gray-50 mb-6">
+                {renderDiagram()}
+              </div>
+
+              <div className="flex justify-between items-center">
+                <button
+                  onClick={() => setStep(Math.max(0, step - 1))}
+                  disabled={step === 0}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-600 transition"
+                >
+                  <ChevronLeft size={20} />
+                  Previous
+                </button>
+                
+                <div className="flex gap-2">
+                  {steps.map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-3 h-3 rounded-full cursor-pointer ${i === step ? 'bg-blue-500' : 'bg-gray-300'}`}
+                      onClick={() => setStep(i)}
+                    />
+                  ))}
+                </div>
+                
+                <button
+                  onClick={() => setStep(Math.min(steps.length - 1, step + 1))}
+                  disabled={step === steps.length - 1}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-600 transition"
+                >
+                  Next
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            </div>
+          );
+        };
+
+        ReactDOM.render(<MersenneTwisterViz />, document.getElementById('root'));
+    </script>
+</body>
+</html>
