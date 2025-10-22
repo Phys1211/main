@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Particle Mass Reconstruction Simulator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+        }
+        
+        .controls {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .control-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #34495e;
+            font-weight: 600;
+        }
+        
+        select, input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        select:focus, input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .particle-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #ecf0f1;
+            border-radius: 4px;
+        }
+        
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-bottom: 4px;
+        }
+        
+        .info-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+            height: 500px;
+        }
+        
+        .description {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 20px;
+            line-height: 1.6;
+            color: #34495e;
+        }
+        
+        .description h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        
+        .sb-ratio {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Particle Mass Reconstruction Simulator</h1>
+    <p class="subtitle">Interactive simulation of invariant mass distributions from particle accelerator collisions</p>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label for="particle">Select Particle:</label>
+            <select id="particle" onchange="updateParticleInfo()">
+                <option value="all">All Particles (mixed)</option>
+                <option value="z">Z⁰ boson</option>
+                <option value="higgs">Higgs boson</option>
+                <option value="jpsi">J/ψ meson</option>
+                <option value="upsilon">Υ(1S) meson</option>
+                <option value="w">W± boson</option>
+            </select>
+        </div>
+        
+        <div class="particle-info" id="single-particle-info">
+            <div class="info-item">
+                <span class="info-label">Mass (M)</span>
+                <span class="info-value" id="mass-display">91.19 GeV</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Decay Width (Γ)</span>
+                <span class="info-value" id="gamma-display">2.495 GeV</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Lifetime (τ)</span>
+                <span class="info-value" id="lifetime-display">2.64 × 10⁻²⁵ s</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Γ/M</span>
+                <span class="info-value" id="ratio-display">2.74%</span>
+            </div>
+        </div>
+        
+        <div class="control-row">
+            <div class="control-group">
+                <label for="numEvents">Total Events:</label>
+                <input type="number" id="numEvents" value="10000" min="100" max="100000" step="100">
+            </div>
+            <div class="control-group">
+                <label for="energy">Center of Mass Energy (TeV):</label>
+                <input type="number" id="energy" value="13" min="7" max="14" step="0.5" onchange="generateHistogram()">
+            </div>
+        </div>
+        
+        <div class="checkbox-group">
+            <input type="checkbox" id="addNoise" onchange="generateHistogram()">
+            <label for="addNoise" style="margin-bottom: 0;">Add background noise</label>
+        </div>
+        
+        <div class="sb-ratio" id="sb-ratio-display" style="display: none;">
+            <div id="sb-value"></div>
+        </div>
+        
+        <button onclick="generateHistogram()" style="margin-top: 20px;">Generate Histogram</button>
+    </div>
+    
+    <div class="chart-container">
+        <canvas id="histogram"></canvas>
+    </div>
+    
+    <div class="description">
+        <h3>About This Simulation</h3>
+        <p>
+            This simulation models the invariant mass reconstruction of unstable particles produced in high-energy 
+            collider experiments. When particles decay, their invariant mass can be reconstructed from the decay 
+            products. Due to the uncertainty principle (ΔE·Δt ~ ℏ), short-lived particles have an inherent energy 
+            uncertainty, resulting in a distribution of reconstructed masses.
+        </p>
+        <p>
+            The distribution follows a Breit-Wigner (relativistic Cauchy) form with a peak at the particle's rest 
+            mass <strong>M</strong> and a width <strong>Γ</strong> related to its lifetime by τ = ℏ/Γ. Narrower 
+            resonances correspond to longer-lived particles.
+        </p>
+        <p>
+            <strong>All Particles mode:</strong> Shows a realistic mix of particles based on their production cross 
+            sections at the selected center-of-mass energy. Cross sections scale with collision energy - at higher 
+            energies, heavier particles like the Higgs become more prevalent. The W and Z bosons dominate production, 
+            while quarkonium states (J/ψ, Υ) and the Higgs are rarer.
+        </p>
+        <p>
+            The background noise option adds realistic combinatorial background from other processes in the detector, 
+            based on actual signal-to-background ratios observed at the LHC.
+        </p>
+    </div>
+
+    <script>
+        const hbar = 6.582119569e-25; // GeV·s
+        
+        // Cross sections at 13 TeV in picobarns, with energy scaling
+        const particles = {
+            z: { 
+                name: 'Z⁰ boson', 
+                mass: 91.1876, 
+                gamma: 2.4952,
+                sbRatio: 3.0,
+                crossSection13TeV: 1981, // pb (times BR to leptons)
+                energyScaling: 0.1  // weak energy dependence
+            },
+            higgs: { 
+                name: 'Higgs boson', 
+                mass: 125.18, 
+                gamma: 0.00407,
+                sbRatio: 0.2,
+                crossSection13TeV: 58, // pb (total)
+                energyScaling: 0.35  // stronger energy dependence
+            },
+            jpsi: { 
+                name: 'J/ψ meson', 
+                mass: 3.0969, 
+                gamma: 0.0000929,
+                sbRatio: 5.0,
+                crossSection13TeV: 8000, // pb (prompt, times BR)
+                energyScaling: 0.15
+            },
+            upsilon: { 
+                name: 'Υ(1S) meson', 
+                mass: 9.4603, 
+                gamma: 0.000054,
+                sbRatio: 8.0,
+                crossSection13TeV: 7000, // pb (times BR to dimuons)
+                energyScaling: 0.2
+            },
+            w: { 
+                name: 'W± boson', 
+                mass: 80.377, 
+                gamma: 2.085,
+                sbRatio: 2.5,
+                crossSection13TeV: 20620, // pb (W+ + W-, times BR)
+                energyScaling: 0.1
+            }
+        };
+        
+        let chart = null;
+        
+        function getCrossSection(particle, energy) {
+            // Scale cross section with energy: σ(E) = σ₀ * (E/13)^α
+            const scaling = Math.pow(energy / 13.0, particle.energyScaling);
+            return particle.crossSection13TeV * scaling;
+        }
+        
+        function updateParticleInfo() {
+            const particleKey = document.getElementById('particle').value;
+            const singleInfo = document.getElementById('single-particle-info');
+            
+            if (particleKey === 'all') {
+                singleInfo.style.display = 'none';
+            } else {
+                singleInfo.style.display = 'grid';
+                const particle = particles[particleKey];
+                
+                const lifetime = hbar / particle.gamma;
+                const ratio = (particle.gamma / particle.mass) * 100;
+                
+                document.getElementById('mass-display').textContent = `${particle.mass.toFixed(4)} GeV`;
+                document.getElementById('gamma-display').textContent = `${particle.gamma.toFixed(6)} GeV`;
+                document.getElementById('lifetime-display').textContent = `${lifetime.toExponential(2)} s`;
+                document.getElementById('ratio-display').textContent = `${ratio.toFixed(3)}%`;
+            }
+            
+            generateHistogram();
+        }
+        
+        function breitWigner(E, M, gamma) {
+            const numerator = gamma * M;
+            const denominator = Math.pow(E * E - M * M, 2) + Math.pow(gamma * M, 2);
+            return numerator / denominator;
+        }
+        
+        function generateBreitWignerSample(M, gamma) {
+            const u = Math.random();
+            return M + (gamma / 2) * Math.tan(Math.PI * (u - 0.5));
+        }
+        
+        function generateHistogram() {
+            const particleKey = document.getElementById('particle').value;
+            const numEvents = parseInt(document.getElementById('numEvents').value);
+            const energy = parseFloat(document.getElementById('energy').value);
+            const addNoise = document.getElementById('addNoise').checked;
+            
+            let allEvents = [];
+            let particleColors = {};
+            let particleLabels = {};
+            let totalCrossSection = 0;
+            let sbDisplay = '';
+            
+            if (particleKey === 'all') {
+                // Calculate relative production rates
+                const crossSections = {};
+                for (let key in particles) {
+                    crossSections[key] = getCrossSection(particles[key], energy);
+                    totalCrossSection += crossSections[key];
+                }
+                
+                // Generate events for each particle based on cross section
+                for (let key in particles) {
+                    const particle = particles[key];
+                    const fraction = crossSections[key] / totalCrossSection;
+                    const particleEvents = Math.floor(numEvents * fraction);
+                    
+                    for (let i = 0; i < particleEvents; i++) {
+                        allEvents.push({
+                            mass: generateBreitWignerSample(particle.mass, particle.gamma),
+                            type: key
+                        });
+                    }
+                }
+                
+                // Color scheme for different particles
+                particleColors = {
+                    'z': 'rgba(52, 152, 219, 0.7)',
+                    'w': 'rgba(46, 204, 113, 0.7)',
+                    'higgs': 'rgba(155, 89, 182, 0.7)',
+                    'jpsi': 'rgba(230, 126, 34, 0.7)',
+                    'upsilon': 'rgba(231, 76, 60, 0.7)'
+                };
+                
+                particleLabels = {
+                    'z': 'Z⁰',
+                    'w': 'W±',
+                    'higgs': 'H',
+                    'jpsi': 'J/ψ',
+                    'upsilon': 'Υ(1S)'
+                };
+                
+                // Update S/B display for all particles
+                if (addNoise) {
+                    document.getElementById('sb-ratio-display').style.display = 'block';
+                    sbDisplay = '<strong>Production Cross Sections at ' + energy + ' TeV:</strong><br>';
+                    for (let key in particles) {
+                        const xs = getCrossSection(particles[key], energy);
+                        sbDisplay += `${particles[key].name}: ${xs.toFixed(0)} pb<br>`;
+                    }
+                } else {
+                    document.getElementById('sb-ratio-display').style.display = 'none';
+                }
+            } else {
+                // Single particle mode
+                const particle = particles[particleKey];
+                
+                for (let i = 0; i < numEvents; i++) {
+                    allEvents.push({
+                        mass: generateBreitWignerSample(particle.mass, particle.gamma),
+                        type: particleKey
+                    });
+                }
+                
+                // Update S/B display
+                if (addNoise) {
+                    document.getElementById('sb-ratio-display').style.display = 'block';
+                    sbDisplay = `<strong>Signal-to-Background Ratio:</strong> ${particle.sbRatio.toFixed(1)}`;
+                } else {
+                    document.getElementById('sb-ratio-display').style.display = 'none';
+                }
+            }
+            
+            document.getElementById('sb-value').innerHTML = sbDisplay;
+            
+            // Determine histogram range
+            let minMass, maxMass;
+            if (particleKey === 'all') {
+                minMass = 0;
+                maxMass = 150;
+            } else {
+                const M = particles[particleKey].mass;
+                const gamma = particles[particleKey].gamma;
+                const rangeMultiplier = Math.max(10, 100 * gamma / M);
+                minMass = M - rangeMultiplier * gamma;
+                maxMass = M + rangeMultiplier * gamma;
+            }
+            
+            const numBins = 150;
+            const binWidth = (maxMass - minMass) / numBins;
+            
+            // Create histogram bins
+            const bins = new Array(numBins).fill(0);
+            const binCenters = [];
+            
+            for (let i = 0; i < numBins; i++) {
+                binCenters.push(minMass + (i + 0.5) * binWidth);
+            }
+            
+            // Fill signal
+            allEvents.forEach(event => {
+                const mass = event.mass;
+                if (mass >= minMass && mass <= maxMass) {
+                    const binIndex = Math.floor((mass - minMass) / binWidth);
+                    if (binIndex >= 0 && binIndex < numBins) {
+                        bins[binIndex]++;
+                    }
+                }
+            });
+            
+            // Add background noise if selected
+            if (addNoise) {
+                let totalBackgroundEvents;
+                if (particleKey === 'all') {
+                    // Mixed background for all particles
+                    totalBackgroundEvents = Math.floor(numEvents * 0.5);
+                } else {
+                    const sbRatio = particles[particleKey].sbRatio;
+                    totalBackgroundEvents = Math.floor(numEvents / sbRatio);
+                }
+                
+                for (let i = 0; i < totalBackgroundEvents; i++) {
+                    const mass = minMass + Math.random() * (maxMass - minMass);
+                    const binIndex = Math.floor((mass - minMass) / binWidth);
+                    if (binIndex >= 0 && binIndex < numBins) {
+                        bins[binIndex]++;
+                    }
+                }
+            }
+            
+            // Generate theoretical curves
+            const datasets = [{
+                label: 'Reconstructed Events',
+                data: bins,
+                backgroundColor: 'rgba(52, 152, 219, 0.6)',
+                borderColor: 'rgba(52, 152, 219, 1)',
+                borderWidth: 1
+            }];
+            
+            if (particleKey === 'all') {
+                // Add theoretical curves for each particle
+                const colors = {
+                    'z': 'rgba(52, 152, 219, 1)',
+                    'w': 'rgba(46, 204, 113, 1)',
+                    'higgs': 'rgba(155, 89, 182, 1)',
+                    'jpsi': 'rgba(230, 126, 34, 1)',
+                    'upsilon': 'rgba(231, 76, 60, 1)'
+                };
+                
+                for (let key in particles) {
+                    const particle = particles[key];
+                    const crossSection = getCrossSection(particle, energy);
+                    const fraction = crossSection / totalCrossSection;
+                    const particleEvents = numEvents * fraction;
+                    
+                    const theoreticalValues = binCenters.map(E => breitWigner(E, particle.mass, particle.gamma));
+                    const maxTheoretical = Math.max(...theoreticalValues);
+                    const peakHeight = particleEvents / numBins * 5; // Approximate peak height
+                    const scaleFactor = peakHeight / maxTheoretical;
+                    const theoreticalCurve = theoreticalValues.map(val => val * scaleFactor);
+                    
+                    datasets.push({
+                        label: particleLabels[key],
+                        data: theoreticalCurve,
+                        type: 'line',
+                        borderColor: colors[key],
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false
+                    });
+                }
+            } else {
+                // Single particle theoretical curve
+                const particle = particles[particleKey];
+                const theoreticalValues = binCenters.map(E => breitWigner(E, particle.mass, particle.gamma));
+                const maxTheoretical = Math.max(...theoreticalValues);
+                const peakBinHeight = Math.max(...bins);
+                const scaleFactor = peakBinHeight / maxTheoretical;
+                const theoreticalCurve = theoreticalValues.map(val => val * scaleFactor);
+                
+                datasets.push({
+                    label: 'Breit-Wigner Theory',
+                    data: theoreticalCurve,
+                    type: 'line',
+                    borderColor: 'rgba(231, 76, 60, 1)',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    fill: false
+                });
+            }
+            
+            // Create chart
+            const ctx = document.getElementById('histogram').getContext('2d');
+            
+            if (chart) {
+                chart.destroy();
+            }
+            
+            const title = particleKey === 'all' 
+                ? `Invariant Mass Distribution: Mixed Particles at ${energy} TeV`
+                : `Invariant Mass Distribution: ${particles[particleKey].name}`;
+            
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: binCenters.map(x => x.toFixed(2)),
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: title,
+                            font: { size: 18 }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Invariant Mass (GeV)',
+                                font: { size: 14 }
+                            },
+                            ticks: {
+                                maxTicksLimit: 10
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Events per Bin',
+                                font: { size: 14 }
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize on load
+        updateParticleInfo();
+    </script>
+</body>
+</html>
