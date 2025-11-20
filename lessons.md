@@ -10,3 +10,17 @@
 9. datatypes and their uses, transforming using typecasting
 10. Using quick functions - lambda functions
 11. Finding stackexchange to help with errors 
+
+
+# In the second half of the semester, we learned....
+1. Integration/Differentiation using several techniques (Diff: Forward/Backward, INT: Trapezoid, Simpson, Romberg)
+2. How to make a plot, update with animate using matplotlib
+3. Monty Carlo Simulations and random number generation (Mersenne Twister - complex algorithm common in most rngs today)
+4. More about process excel spreadsheets, handle data (pandas)
+5. More about classes and how to use them
+6. Different ways of graphing data - and map projections
+7. Video analysis - basics, of tracking motion
+8. Visualization using VPython to create animation
+9. How to use pandas filtering/indexing to uncover desirable data
+10. Solving systems of differential equations - project 2
+  
